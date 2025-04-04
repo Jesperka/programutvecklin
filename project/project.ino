@@ -13,8 +13,8 @@
 
 
 // Remember to remove these before commiting in GitHub
-String ssid = "ssid";
-String password = "hej";
+String ssid = "BTH_Guest";
+String password = "Piggelin30Lotus";
 
 // "tft" is the graphics libary, which has functions to draw on the screen
 TFT_eSPI tft = TFT_eSPI();
@@ -60,7 +60,7 @@ void setup() {
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.drawString("Connected to WiFi", 10, 10);
   Serial.println("Connected to WiFi");
-  // Add your code bellow 
+  // Add your code bellow -----------------------------------------------------
 
 }
 
@@ -68,14 +68,31 @@ void setup() {
  * This is the main loop function that runs continuously after setup.
  * Add your code here to perform tasks repeatedly.
  */
+
+int x;
+int ggg = 0;
 void loop() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
-  tft.drawString("Hello student", 10, 10);
-  
-  delay(1000);
+if (ggg == 0) {
+  tft.drawString("Version 1.0, Grupp: 4", 50, 50);
+  delay(3000);
+  ggg++;
 }
+  int knapp1 = digitalRead(PIN_BUTTON_1);
+  int knapp2 = digitalRead(PIN_BUTTON_2);
+  if (knapp1 == LOW) {
+    x = (x+1);
+  } else if (knapp2 == LOW)
+  {
+    x = (x-1);
+  }
+  tft.drawString(String(x), 50, 80);
+  delay(3000);
+}
+
+
 
 
 // TFT Pin check
