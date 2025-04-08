@@ -14,7 +14,7 @@
 
 // Remember to remove these before commiting in GitHub
 String ssid = "BTH_Guest";
-String password = "Piggelin30Lotus";
+String password = "Pingvin89Opel";
 
 // "tft" is the graphics libary, which has functions to draw on the screen
 TFT_eSPI tft = TFT_eSPI();
@@ -69,27 +69,31 @@ void setup() {
  * Add your code here to perform tasks repeatedly.
  */
 
-int x;
+String x = "Menu";
 int ggg = 0;
 void loop() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
 if (ggg == 0) {
-  tft.drawString("Version 1.0, Grupp: 4", 50, 50);
+  tft.drawString("Version 1.0", 50, 40);
+  tft.drawString("Group 4", 60, 60);
   delay(3000);
   ggg++;
 }
   int knapp1 = digitalRead(PIN_BUTTON_1);
   int knapp2 = digitalRead(PIN_BUTTON_2);
   if (knapp1 == LOW) {
-    x = (x+1);
+    x = "Forecast";
   } else if (knapp2 == LOW)
   {
-    x = (x-1);
+    x = "Settings";
   }
-  tft.drawString(String(x), 50, 80);
+  tft.drawString(x, 80, 80);
   delay(3000);
+}
+void SmhiData() {
+  String URL = "";
 }
 
 
