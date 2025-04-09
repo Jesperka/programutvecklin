@@ -68,9 +68,9 @@ void setup() {
  * This is the main loop function that runs continuously after setup.
  * Add your code here to perform tasks repeatedly.
  */
-String x = "Menu";
 int ggg = 0;
 void loop() {
+  String x;
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
@@ -108,7 +108,6 @@ float SmhiData() {
     DeserializationError error = deserializeJson(doc, payload);
   
     if (error) {
-      Serial.println(error.c_str());
       tft.fillScreen(TFT_BLACK);
       tft.drawString("Wrong with JSON", 40, 40);
       http.end();
