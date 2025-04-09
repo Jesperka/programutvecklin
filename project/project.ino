@@ -13,8 +13,8 @@
 
 
 // Remember to remove these before commiting in GitHub
-String ssid = "BTH_Guest";
-String password = "Pingvin89Opel";
+String ssid = "TP-Link_D290";
+String password = "91802422";
 
 // "tft" is the graphics libary, which has functions to draw on the screen
 TFT_eSPI tft = TFT_eSPI();
@@ -68,19 +68,20 @@ void setup() {
  * This is the main loop function that runs continuously after setup.
  * Add your code here to perform tasks repeatedly.
  */
-
 String x = "Menu";
 int ggg = 0;
 void loop() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
+// Starting screen
 if (ggg == 0) {
   tft.drawString("Version 1.0", 50, 40);
   tft.drawString("Group 4", 60, 60);
   delay(3000);
   ggg++;
 }
+// Menu
   int knapp1 = digitalRead(PIN_BUTTON_1);
   int knapp2 = digitalRead(PIN_BUTTON_2);
   if (knapp1 == LOW) {
@@ -89,12 +90,47 @@ if (ggg == 0) {
   {
     x = "Settings";
   }
-  tft.drawString(x, 80, 80);
+  tft.drawString(x, 100, 80);
+  delay(3000);
+  tft.drawString(String(SmhiData())+" Celcius", 50, 100);
   delay(3000);
 }
-void SmhiData() {
-  String URL = "";
+// Get data from smhi
+float SmhiData() {
+  HTTPClient http;
+  http.begin("https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2711537/combined");
+
+  int Code = http.GET();
+  JsonDocument doc;
+
+  if (Code == 200) {
+    String payload = http.getString();
+    DeserializationError error = deserializeJson(doc, payload);
+  
+    if (error) {
+      Serial.println(error.c_str());
+      tft.fillScreen(TFT_BLACK);
+      tft.drawString("Wrong with JSON", 40, 40);
+      http.end();
+      return 0;
+    } else {
+      float temperature = doc["forecast10d"]["daySerie"][0]["data"][0]["t"].as<float>();
+      http.end();
+      return temperature;
+    }
+    tft.fillScreen(TFT_BLACK);
+    tft.drawString("No temperature", 40, 40);
+    http.end();
+    return 0;
+
+  } else {
+    tft.fillScreen(TFT_BLACK);
+    tft.drawString("HTTP Error", 40, 40);
+    http.end();
+    return 0;
+  }
 }
+
 
 
 
