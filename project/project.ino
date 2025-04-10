@@ -13,8 +13,8 @@
 
 
 // Remember to remove these before commiting in GitHub
-String ssid = "TP-Link_D290";
-String password = "91802422";
+String ssid = "BTH_Guest";
+String password = "Pingvin89Opel";
 
 // "tft" is the graphics libary, which has functions to draw on the screen
 TFT_eSPI tft = TFT_eSPI();
@@ -68,18 +68,20 @@ void setup() {
  * This is the main loop function that runs continuously after setup.
  * Add your code here to perform tasks repeatedly.
  */
-int ggg = 0;
+int i = 1;
 void loop() {
   String x;
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
 // Starting screen
-if (ggg == 0) {
+
+while (i != 2)
+{
   tft.drawString("Version 1.0", 50, 40);
   tft.drawString("Group 4", 60, 60);
   delay(3000);
-  ggg++;
+  i = 2;
 }
 // Menu
   int knapp1 = digitalRead(PIN_BUTTON_1);
@@ -92,11 +94,11 @@ if (ggg == 0) {
   }
   tft.drawString(x, 100, 80);
   delay(3000);
-  tft.drawString(String(SmhiData())+" Celcius", 50, 100);
+  tft.drawString(SmhiData(), 30, 100);
   delay(3000);
 }
 // Get data from smhi
-float SmhiData() {
+String SmhiData() {
   HTTPClient http;
   http.begin("https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2711537/combined");
 
@@ -111,22 +113,23 @@ float SmhiData() {
       tft.fillScreen(TFT_BLACK);
       tft.drawString("Wrong with JSON", 40, 40);
       http.end();
-      return 0;
+      return "";
     } else {
       float temperature = doc["forecast10d"]["daySerie"][0]["data"][0]["t"].as<float>();
+      String city = doc["place"]["place"];
       http.end();
-      return temperature;
+      return String(temperature) + " celcius in " + city;
     }
     tft.fillScreen(TFT_BLACK);
     tft.drawString("No temperature", 40, 40);
     http.end();
-    return 0;
+    return "";
 
   } else {
     tft.fillScreen(TFT_BLACK);
     tft.drawString("HTTP Error", 40, 40);
     http.end();
-    return 0;
+    return "";
   }
 }
 
