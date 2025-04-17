@@ -11,32 +11,133 @@
 #include <TFT_eSPI.h>
 #include <time.h>
 
+// WiFi credentials
+String ssid = "#Telia-EBB130";
+String password = "1KTSASA6K71fT1d7";
 
-// Remember to remove these before commiting in GitHub
-String ssid = "BTH_Guest";
-String password = "Pingvin89Opel";
-
-// "tft" is the graphics libary, which has functions to draw on the screen
 TFT_eSPI tft = TFT_eSPI();
-
-// Display dimentions
 #define DISPLAY_WIDTH 320
 #define DISPLAY_HEIGHT 170
 
 WiFiClient wifi_client;
+//Visual function for the menu
+void drawMenu(int selectedIndex) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.drawCentreString("Menu", DISPLAY_WIDTH / 2, 10, 2);
+  //An array of strings (options) is displayed, and shows selected through a >
+  String menuItems[2] = {"Forecast", "Settings"};
+  for (int i = 0; i < 2; i++) {
+    int x = 30;
+    int y = 50 + i * 30;
+    if (i == selectedIndex) {
+      tft.drawString(">", x - 20, y);
+    }
+    tft.drawString(menuItems[i], x, y);
+  }
+}
 
-/**
- * Setup function
- * This function is called once when the program starts to initialize the program
- * and set up the hardware.
- * Carefull when modifying this function.
- */
+String showMenu() {
+  int selected = 0;
+  String menuItems[2] = {"Forecast", "Settings"};
+  unsigned long lastInputTime = millis();
+  const unsigned long timeout = 5000;
+
+  drawMenu(selected);
+
+  while (true) {
+    int knapp1 = digitalRead(PIN_BUTTON_1);
+    int knapp2 = digitalRead(PIN_BUTTON_2);
+
+    if (knapp1 == LOW) {
+      selected--;
+      if (selected < 0) selected = 1;
+      drawMenu(selected);
+      lastInputTime = millis();
+      delay(200);
+    }
+
+    if (knapp2 == LOW) {
+      selected++;
+      if (selected > 1) selected = 0;
+      drawMenu(selected);
+      lastInputTime = millis();
+      delay(200);
+    }
+
+    if (millis() - lastInputTime >= timeout) {
+      return menuItems[selected];
+    }
+    delay(10);
+  }
+}
+
+String SmhiData(int city) {
+  String cityNames[3] = {"Karlskrona", "Goteborg", "Stockholm"};
+  String urls[3] = {
+    "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/15.59/lat/56.18/data.json", // Karlskrona
+    "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/11.97/lat/57.7/data.json",  // Göteborg
+    "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.07/lat/59.32/data.json"  // Stockholm
+  };
+
+  if (city < 0 || city > 2) return "Invalid city index";
+
+  String cityName = cityNames[city];
+  String url = urls[city];
+
+  Serial.println("Fetching SMHI for " + cityName);
+  Serial.println("URL: " + url);
+
+  HTTPClient http;
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    WiFiClient& stream = http.getStream();
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, stream);
+
+
+    if (error) {
+      Serial.println("JSON error: " + String(error.c_str()));
+      http.end();
+      return "JSON error";
+    }
+
+    JsonArray timeSeries = doc["timeSeries"];
+    if (timeSeries.size() == 0) {
+      Serial.println("No timeSeries data!");
+      http.end();
+      return "No timeSeries";
+    }
+
+    for (int i = 0; i < min(3, (int)timeSeries.size()); i++) {
+      JsonArray parameters = timeSeries[i]["parameters"];
+      for (JsonObject param : parameters) {
+        if (param["name"] == "t") {
+          float temperature = param["values"][0];
+          String time = timeSeries[i]["validTime"];
+          http.end();
+          Serial.println("Temp found: " + String(temperature));
+          return cityName + ": " + String(temperature, 1) + "°C";
+        }
+      }
+    }
+
+    http.end();
+    return "Temp not found";
+  } else {
+    Serial.println("HTTP error: " + String(httpCode));
+    http.end();
+    return "HTTP error";
+  }
+}
+
+
 void setup() {
-  // Initialize Serial for debugging
   Serial.begin(115200);
-  // Wait for the Serial port to be ready
   while (!Serial);
-  Serial.println("Starting ESP32 program...");
   tft.init();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
@@ -44,102 +145,53 @@ void setup() {
   pinMode(PIN_BUTTON_1, INPUT_PULLUP);
   pinMode(PIN_BUTTON_2, INPUT_PULLUP);
 
-  // Connect to WIFI
   WiFi.begin(ssid, password);
-
-  // Will be stuck here until a proper wifi is configured
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("Connecting to WiFi...", 10, 10);
-    Serial.println("Attempting to connect to WiFi...");
   }
 
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.drawString("Connected to WiFi", 10, 10);
-  Serial.println("Connected to WiFi");
-  // Add your code bellow -----------------------------------------------------
-
+  delay(1000);
 }
 
-/**
- * This is the main loop function that runs continuously after setup.
- * Add your code here to perform tasks repeatedly.
- */
-int i = 1;
 void loop() {
+  static int initDone = 0;
+  static int city = 1;
   String x;
+
+  if (!initDone) {
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(2);
+    tft.drawString("Version 1.0", 50, 40);
+    tft.drawString("Group 4", 60, 60);
+    delay(3000);
+    initDone = 1;
+  }
+
+  x = showMenu();
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextSize(2);
-// Starting screen
 
-while (i != 2)
-{
-  tft.drawString("Version 1.0", 50, 40);
-  tft.drawString("Group 4", 60, 60);
-  delay(3000);
-  i = 2;
-}
-// Menu
-  int knapp1 = digitalRead(PIN_BUTTON_1);
-  int knapp2 = digitalRead(PIN_BUTTON_2);
-  if (knapp1 == LOW) {
-    x = "Forecast";
-  } else if (knapp2 == LOW)
-  {
-    x = "Settings";
+  if (x == "Forecast") {
+    tft.drawString(SmhiData(city), 30, 100);
+    delay(10000);
+  } else if (x == "Settings") {
+    tft.drawString("Settings", 110, 100);
+    delay(5000);
   }
-  tft.drawString(x, 100, 80);
-  delay(3000);
-  tft.drawString(SmhiData(), 30, 100);
-  delay(3000);
+
+  // Optional: return to menu after displaying result
 }
-// Get data from smhi
-String SmhiData() {
-  HTTPClient http;
-  http.begin("https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2711537/combined");
-
-  int Code = http.GET();
-  JsonDocument doc;
-
-  if (Code == 200) {
-    String payload = http.getString();
-    DeserializationError error = deserializeJson(doc, payload);
-  
-    if (error) {
-      tft.fillScreen(TFT_BLACK);
-      tft.drawString("Wrong with JSON", 40, 40);
-      http.end();
-      return "";
-    } else {
-      float temperature = doc["forecast10d"]["daySerie"][0]["data"][0]["t"].as<float>();
-      String city = doc["place"]["place"];
-      http.end();
-      return String(temperature) + " celcius in " + city;
-    }
-    tft.fillScreen(TFT_BLACK);
-    tft.drawString("No temperature", 40, 40);
-    http.end();
-    return "";
-
-  } else {
-    tft.fillScreen(TFT_BLACK);
-    tft.drawString("HTTP Error", 40, 40);
-    http.end();
-    return "";
-  }
-}
-
-
-
-
 
 // TFT Pin check
-  //////////////////
- // DO NOT TOUCH //
+//////////////////
+// DO NOT TOUCH //
 //////////////////
 #if PIN_LCD_WR  != TFT_WR || \
     PIN_LCD_RD  != TFT_RD || \
