@@ -12,8 +12,8 @@
 #include <time.h>
 
 // WiFi credentials
-String ssid = "#Telia-EBB130";
-String password = "1KTSASA6K71fT1d7";
+String ssid = "Jespers iPhone 14";
+String password = "Jesper12";
 
 TFT_eSPI tft = TFT_eSPI();
 #define DISPLAY_WIDTH 320
@@ -75,10 +75,15 @@ String showMenu() {
 
 String SmhiData(int city) {
   String cityNames[3] = {"Karlskrona", "Goteborg", "Stockholm"};
-  String urls[3] = {
+  String urlss[3] = {
     "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/15.59/lat/56.18/data.json", // Karlskrona
     "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/11.97/lat/57.7/data.json",  // Göteborg
     "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.07/lat/59.32/data.json"  // Stockholm
+  };
+  String urls[3] = {
+    "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2711537/combined", // Göteborg
+    "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2701713/combined", // Karlskrona
+    "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2673730/combined" // Stockholm
   };
 
   if (city < 0 || city > 2) return "Invalid city index";
@@ -94,36 +99,23 @@ String SmhiData(int city) {
   int httpCode = http.GET();
 
   if (httpCode == 200) {
-    WiFiClient& stream = http.getStream();
+    String payload = http.getString();
     JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, stream);
+    DeserializationError error = deserializeJson(doc, payload);
 
 
     if (error) {
       Serial.println("JSON error: " + String(error.c_str()));
       http.end();
       return "JSON error";
-    }
-
-    JsonArray timeSeries = doc["timeSeries"];
-    if (timeSeries.size() == 0) {
-      Serial.println("No timeSeries data!");
+    } else {
+      float temperature = doc["forecast10d"]["daySerie"][0]["data"][0]["t"].as<float>();
       http.end();
-      return "No timeSeries";
+      return String(temperature) + " C i " + cityName;
     }
 
-    for (int i = 0; i < min(3, (int)timeSeries.size()); i++) {
-      JsonArray parameters = timeSeries[i]["parameters"];
-      for (JsonObject param : parameters) {
-        if (param["name"] == "t") {
-          float temperature = param["values"][0];
-          String time = timeSeries[i]["validTime"];
-          http.end();
-          Serial.println("Temp found: " + String(temperature));
-          return cityName + ": " + String(temperature, 1) + "°C";
-        }
-      }
-    }
+    
+    
 
     http.end();
     return "Temp not found";
@@ -134,6 +126,77 @@ String SmhiData(int city) {
   }
 }
 
+void drawSettingsMenu(int selectedIndex, int currentCity) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.drawCentreString("Settings", DISPLAY_WIDTH / 2, 10, 2);
+
+  String settingsItems[2] = {
+    "Return",
+    "City: " + String((currentCity == 0) ? "Karlskrona" : (currentCity == 1) ? "Goteborg" : "Stockholm")
+  };
+
+  for (int i = 0; i < 2; i++) {
+    int x = 30;
+    int y = 50 + i * 30;
+    if (i == selectedIndex) {
+      tft.drawString(">", x - 20, y); // Visa ">" framför valt alternativ
+    } else {
+      tft.drawString(" ", x - 20, y); // Tomt framför icke valda
+    }
+    tft.drawString(settingsItems[i], x, y);
+  }
+}
+
+String showSettings(int &city) {
+  int selected = 0;
+  unsigned long selectedTime = 0;
+  bool holding = false;
+
+  drawSettingsMenu(selected, city);
+
+  while (true) {
+    int knapp1 = digitalRead(PIN_BUTTON_1);
+    int knapp2 = digitalRead(PIN_BUTTON_2);
+
+    if (knapp1 == LOW) {
+      selected--;
+      if (selected < 0) selected = 1;
+      drawSettingsMenu(selected, city);
+      holding = false;
+      delay(200);
+    }
+
+    if (knapp2 == LOW) {
+      selected++;
+      if (selected > 1) selected = 0;
+      drawSettingsMenu(selected, city);
+      holding = false;
+      delay(200);
+    }
+
+    if (knapp1 == HIGH && knapp2 == HIGH) {
+      if (!holding) {
+        holding = true;
+        selectedTime = millis();
+      } else if (millis() - selectedTime >= 3000) { // 3 sekunders hållning
+        if (selected == 0) { // Return
+          return "Return";
+        } else if (selected == 1) { // City
+          city = (city + 1) % 3; // Växla stad
+          drawSettingsMenu(selected, city); // Rita om ny stad
+          holding = false;
+          delay(300);
+        }
+      }
+    } else {
+      holding = false;
+    }
+
+    delay(10);
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -182,12 +245,13 @@ void loop() {
     tft.drawString(SmhiData(city), 30, 100);
     delay(10000);
   } else if (x == "Settings") {
-    tft.drawString("Settings", 110, 100);
-    delay(5000);
+    String s = showSettings(city);
+    if (s == "Return") {
+      // Gå tillbaka till meny
+    }
   }
-
-  // Optional: return to menu after displaying result
 }
+
 
 // TFT Pin check
 //////////////////
