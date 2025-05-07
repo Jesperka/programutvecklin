@@ -26,6 +26,16 @@ struct WeatherData {
   String symbols[8];
 };
 
+String getSymbolFromCode(int sym) {
+  Serial.println(sym);
+  if (sym == 1 || sym == 2) return "☀ (Sun) ";      // clear / mostly clear
+  if (sym == 3 || sym == 4) return "☁ (Cloud) ";      // partly to fully cloudy
+  if (sym >= 5 && sym <= 8) return "☔ (Rain) ";      // different types of rain
+  if (sym >= 9 && sym <= 14) return "❄ (Snow) ";     // snow/mixed
+  if (sym >= 15 && sym <= 18) return "⚡ (Thunder) ";    // thunderstorm/heavy rain
+  return "?";                                // fallback
+}
+
 void fetchForecast(WeatherData &data) {
   HTTPClient http;
   http.begin(urls[city]);
@@ -33,10 +43,12 @@ void fetchForecast(WeatherData &data) {
     JsonDocument doc;
     deserializeJson(doc, http.getString());
     for (int i = 0; i < 8; i++) {
-      float t = doc["forecast10d"]["daySerie"][0]["data"][i]["t"];
-      int sym = doc["forecast10d"]["daySerie"][0]["data"][i]["wsymb2"];
-      data.temperatures[i] = (tempUnit == 0) ? t : (t * 9.0 / 5.0 + 32);
-      data.symbols[i] = (sym == 1) ? "☀" : (sym == 3) ? "☁" : (sym == 5) ? "☔" : "?";
+     data.temperatures[i] = doc["forecast10d"]["daySerie"][0]["data"][i]["t"];
+    }
+
+    for (int i = 0; i < 8; i++) {
+     int sym = doc["forecast10d"]["daySerie"][0]["data"][i]["Wsymb2"];
+     data.symbols[i] = getSymbolFromCode(sym);
     }
   }
   http.end();
@@ -47,13 +59,25 @@ void drawBootScreen() {
   fetchForecast(data);
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE);
+
+  // Header info
   tft.setTextSize(2);
-  tft.drawString("Version 1.0", 50, 10);
-  tft.drawString("Group 4", 60, 30);
+  tft.drawString("Version 1.0", 10, 10);
+  tft.drawString("Group 4", 10, 30);
+
+  // Forecast table
   tft.setTextSize(1);
-  tft.drawString(cityNames[city], 10, 60);
-  tft.drawString(String(data.temperatures[0], 1) + (tempUnit == 0 ? " C" : " F"), 10, 75);
-  if (showSymbols) tft.drawString("Symbol: " + data.symbols[0], 10, 90);
+  for (int i = 0; i < 8; i++) {
+    int y = 55 + i * 12;
+    String hour = String(i * 3) + "h";
+    String temp = String(data.temperatures[i], 1) + (tempUnit == 0 ? " C" : " F");
+    String symbol = showSymbols ? data.symbols[i] : "";
+
+    tft.drawString(hour, 10, y);
+    tft.drawString(symbol, 50, y);
+    tft.drawString(temp, 160, y);
+  }
+
   delay(3000);
 }
 
