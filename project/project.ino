@@ -13,19 +13,19 @@ String password = "Jesper12";
 int city = 1;
 int tempUnit = 0;
 bool showSymbols = true;
-
+//Links and citynames
 String cityNames[] = {"Karlskrona", "Goteborg", "Stockholm"};
 String urls[] = {
   "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2701713/combined",
   "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2711537/combined",
   "https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2673730/combined"
 };
-
+//
 struct WeatherData {
   float temperatures[8];
   String symbols[8];
 };
-
+//Translate Wsymb2 to symbol
 String getSymbolFromCode(int sym) {
   Serial.println(sym);
   if (sym == 1 || sym == 2) return "☀ (Sun) ";      // clear / mostly clear
@@ -35,7 +35,7 @@ String getSymbolFromCode(int sym) {
   if (sym >= 15 && sym <= 18) return "⚡ (Thunder) ";    // thunderstorm/heavy rain
   return "?";                                // fallback
 }
-
+//Getting weather info and translate wsymb2 to symbol
 void fetchForecast(WeatherData &data) {
   HTTPClient http;
   http.begin(urls[city]);
@@ -53,7 +53,7 @@ void fetchForecast(WeatherData &data) {
   }
   http.end();
 }
-
+//Starting screen
 void drawBootScreen() {
   WeatherData data;
   fetchForecast(data);
@@ -78,9 +78,9 @@ void drawBootScreen() {
     tft.drawString(temp, 160, y);
   }
 
-  delay(3000);
+  delay(4000);
 }
-
+//Main menu
 void drawMenu(int selected) {
   tft.fillScreen(TFT_BLACK);
   String items[] = {"Forecast", "Settings", "History"};
@@ -91,7 +91,7 @@ void drawMenu(int selected) {
     tft.drawString(prefix + items[i], 10, 50 + i * 30);
   }
   tft.setTextSize(1);
-  tft.drawString("K1: Scroll  K2: Select", 10, 140);
+  tft.drawString("B1: Scroll  Hold B2: Select", 10, 140);
 }
 
 String showMenu() {
@@ -182,6 +182,7 @@ void showHistory() {
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(1);
   tft.drawString("(Mock) Yesterday in " + cityNames[city], 10, 10);
+  //Needs another API to make this work
   tft.drawString("High: 12.3 C", 10, 30);
   tft.drawString("Low: 5.8 C", 10, 50);
   tft.drawString("Hold both buttons to return", 10, 140);
@@ -202,7 +203,7 @@ void setup() {
   }
   drawBootScreen();
 }
-
+//Main loop
 void loop() {
   while (true) {
     String choice = showMenu();
