@@ -39,13 +39,15 @@ String getSymbolFromCode(int sym) {
 void fetchForecast(WeatherData &data) {
   HTTPClient http;
   http.begin(urls[city]);
+  //Check if the connection went correctly
   if (http.GET() == 200) {
     JsonDocument doc;
     deserializeJson(doc, http.getString());
+    //Collect all temperature
     for (int i = 0; i < 8; i++) {
      data.temperatures[i] = doc["forecast10d"]["daySerie"][0]["data"][i]["t"];
     }
-
+    //Collect all symbols
     for (int i = 0; i < 8; i++) {
      int sym = doc["forecast10d"]["daySerie"][0]["data"][i]["Wsymb2"];
      data.symbols[i] = getSymbolFromCode(sym);
@@ -68,7 +70,7 @@ void drawBootScreen() {
   // Forecast table
   tft.setTextSize(1);
   for (int i = 0; i < 8; i++) {
-    int y = 55 + i * 12;
+    int y = 55 + i * 12; //To get good distances between "temperature and symbol blocks"
     String hour = String(i * 3) + "h";
     String temp = String(data.temperatures[i], 1) + (tempUnit == 0 ? " C" : " F");
     String symbol = showSymbols ? data.symbols[i] : "";
@@ -86,6 +88,7 @@ void drawMenu(int selected) {
   String items[] = {"Forecast", "Settings", "History"};
   tft.setTextSize(2);
   tft.drawCentreString("Menu", 160, 10, 2);
+  //The selector and drawer for main menu
   for (int i = 0; i < 3; i++) {
     String prefix = (i == selected) ? "→ " : "  ";
     tft.drawString(prefix + items[i], 10, 50 + i * 30);
@@ -95,12 +98,12 @@ void drawMenu(int selected) {
 }
 
 String showMenu() {
-  int selected = 0;
+  int selected = 0; //Checks which element from String items that is selected
   unsigned long pressStart = 0;
   drawMenu(selected);
   while (true) {
     if (digitalRead(PIN_BUTTON_1) == LOW && digitalRead(PIN_BUTTON_2) == HIGH) {
-      selected = (selected + 1) % 3;
+      selected = (selected + 1) % 3; //Changes value to selected
       drawMenu(selected);
       delay(200);
     }
@@ -122,7 +125,7 @@ void drawForecast(const WeatherData &data) {
   tft.setTextSize(1);
   tft.drawString("Forecast for " + cityNames[city], 10, 10);
   for (int i = 0; i < 8; i++) {
-    int y = 30 + i * 15;
+    int y = 30 + i * 15; // To get good distances between the lines
     tft.drawString(String(i * 3) + "h:", 10, y);
     tft.drawString(String(data.temperatures[i], 1) + (tempUnit == 0 ? " C" : " F"), 60, y);
     if (showSymbols) tft.drawString(data.symbols[i], 130, y);
@@ -134,6 +137,7 @@ void drawForecast(const WeatherData &data) {
 void showSettings() {
   int selected = 0;
   unsigned long pressStart = 0, holdStart = 0;
+  //A loop to check if the two buttons are pressed
   while (true) {
     if (digitalRead(PIN_BUTTON_1) == LOW && digitalRead(PIN_BUTTON_2) == LOW) {
       if (holdStart == 0) holdStart = millis();
@@ -151,17 +155,19 @@ void showSettings() {
       "Unit: " + String(tempUnit == 0 ? "C" : "F"),
       "Symbols: " + String(showSymbols ? "On" : "Off")
     };
+    //Drawing
     for (int i = 0; i < 4; i++) {
       String prefix = (i == selected) ? "→ " : "  ";
       tft.drawString(prefix + opts[i], 10, 30 + i * 30);
     }
     tft.setTextSize(1);
     tft.drawString("K1: Scroll  K2: Select", 10, 140);
-
+    // Change value to selected
     if (digitalRead(PIN_BUTTON_1) == LOW && digitalRead(PIN_BUTTON_2) == HIGH) {
       selected = (selected + 1) % 4;
       delay(200);
     }
+    //An if loop to check whats selected and to execute whatever is supposed to be executed
     if (digitalRead(PIN_BUTTON_2) == LOW && digitalRead(PIN_BUTTON_1) == HIGH) {
       if (pressStart == 0) pressStart = millis();
       if (millis() - pressStart > 250) {
@@ -209,6 +215,7 @@ void loop() {
     String choice = showMenu();
     unsigned long holdStart = 0;
     while (true) {
+      //Break if both buttons are being hold
       if (digitalRead(PIN_BUTTON_1) == LOW && digitalRead(PIN_BUTTON_2) == LOW) {
         if (holdStart == 0) holdStart = millis();
         if (millis() - holdStart > 2000) break;
