@@ -75,3 +75,14 @@ To connect to WiFi, you need to provide your SSID and password in the [project/p
 * `$()`: executes this command and substitutes its output.
 
 Purpose: This is useful when working with serial devices (like Arduino or other USB-connected hardware). By adding yourself to the device's group, you gain permission to access `/dev/ttyACM0` without needing sudo every time.
+
+## Code Source
+https://wpt-a.smhi.se/backend-weatherpage/forecast/fetcher/2701713/combined 
+
+## Features
+- [3] US1.1: As a user, I want to see a boot screen to display the current program version and team number for at least 3 seconds.
+- [8] US2.1: A menu to navigate between different screens using the two buttons, like forecast and settings screen
+- [3] US 4.1: Make user able to access a settings menu to configure weather data display options
+- [5] US2.2B: As a user, I want to access the menu from anywhere in the program by holding both buttons simultaneously.
+- [8] US 4.3: Make user able to select diffrent citites to view their weather data for the historical data and starting screen forecast
+- [3] US1.2B: As a user, I want to see temperature and weather conditions with symbols (e.g., clear sky, rain, snow, thunder) for the next 24 hours on the starting screen.
